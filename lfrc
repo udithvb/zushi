@@ -1,0 +1,94 @@
+set editor nvim
+# https://vxlabs.com/2024/06/01/gokcehan-lf-image-code-archive-previews/
+set previewer ~/.config/lf/preview
+# our previewer script uses bat - re-use for the pager shortcut
+map i $~/.config/lf/preview $f | less -R
+# we convert images to sixel using chafa
+set sixel true
+# refine selected file as I type
+set incsearch true
+set shell bash
+set shellopts '-eu'
+set ifs "\n"
+set scrolloff 10
+# set color256
+set icons
+set period 1
+# Vars that depend on environmental variables
+$lf -remote "send $id set previewer ${XDG_CONFIG_HOME:-$HOME/.config}/lf/scope"
+
+cmd mkdir $mkdir -p "$(echo $* | tr ' ' '\ ')"
+
+cmd delete ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	printf "%s\n\t" "$fx"
+	printf "delete?[y/N]"
+	read ans
+	[ $ans = "y" ] && rm -rf $fx
+}}
+
+cmd moveto ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Move to where?"
+	dest="$(cut -d'	' -f2- ${XDG_CONFIG_HOME:-$HOME/.config}/directories | fzf)" &&
+	eval mv -iv $fx $dest &&
+	notify-send "🚚 File(s) moved." "File(s) moved to $dest."
+}}
+
+cmd copyto ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Copy to where?"
+	dest="$(cut -d'	' -f2- ${XDG_CONFIG_HOME:-$HOME/.config}/directories | fzf)" &&
+	eval cp -ivr $fx $dest &&
+	notify-send "📋 File(s) copied." "File(s) copies to $dest."
+}}
+
+cmd bulkrename ${{
+    vidir
+}}
+
+cmd fzf_jump ${{
+    #res="$(find * | fzf --header='Jump to location')"
+    res="$(fzf --walker=file,dir,follow,hidden --walker-skip=.git,node_modules,.Trash)"
+    if [ -n "$res" ]; then
+        if [ -d "$res" ]; then
+            cmd="cd"
+        else
+            cmd="select"
+        fi
+        res="$(printf '%s' "$res" | sed 's/\\/\\\\/g;s/"/\\"/g')"
+        lf -remote "send $id $cmd \"$res\""
+    fi
+}}
+
+map <c-f> $lf -remote "send $id select '$(fzf)'"
+map J $lf -remote "send $id cd $(cut -d'	' -f2 ${XDG_CONFIG_HOME:-$HOME/.config}/directories | fzf)"
+map gh
+map g top
+map D delete
+map C copyto
+map M moveto
+map <c-n> push :mkdir<space>
+map <c-r> reload
+map <enter> shell
+map x $$f
+map X !$f
+map o &mimeopen $f
+map O $mimeopen --ask $f
+
+map A rename # at the very end
+map c push A<c-u> # new rename
+map I push A<c-a> # at the very beginning
+map i push A<a-b><a-b><a-f> # before extention
+map a push A<a-b> # after extention
+map b bulkrename
+
+map <c-e> down
+map <c-y> up
+map V push :!nvim<space>
+map <c-o> :fzf_jump
+
+
