@@ -1,0 +1,56 @@
+---
+- name: Bootstrap zushi dotfiles
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    repo_dir: "{{ playbook_dir | dirname }}"
+    home_dir: "{{ ansible_env.HOME }}"
+
+  tasks:
+    - name: Install packages via Homebrew
+      community.general.homebrew:
+        name:
+          - tmux
+          - lf
+          - ipython
+        state: present
+      when: ansible_os_family == "Darwin"
+
+    - name: Ensure lf config directory exists
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/lf"
+        state: directory
+        mode: "0755"
+
+    - name: Symlink .tmux.conf
+      ansible.builtin.file:
+        src: "{{ repo_dir }}/.tmux.conf"
+        dest: "{{ home_dir }}/.tmux.conf"
+        state: link
+        force: true
+
+    - name: Symlink lfrc
+      ansible.builtin.file:
+        src: "{{ repo_dir }}/lfrc"
+        dest: "{{ home_dir }}/.config/lf/lfrc"
+        state: link
+        force: true
+
+    - name: Check if ~/.ipython exists as a real directory
+      ansible.builtin.stat:
+        path: "{{ home_dir }}/.ipython"
+      register: ipython_dir
+
+    - name: Back up existing real ~/.ipython directory
+      ansible.builtin.command:
+        cmd: mv "{{ home_dir }}/.ipython" "{{ home_dir }}/.ipython.bak"
+      when: ipython_dir.stat.exists and not ipython_dir.stat.islnk
+
+    - name: Symlink ipython directory
+      ansible.builtin.file:
+        src: "{{ repo_dir }}/ipython"
+        dest: "{{ home_dir }}/.ipython"
+        state: link
+        force: true

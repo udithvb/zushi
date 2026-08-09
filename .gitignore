@@ -1,0 +1,7 @@
+.DS_Store
+
+# ipython runtime files (regenerated on use)
+ipython/profile_default/history.sqlite
+ipython/profile_default/log/
+ipython/profile_default/pid
+ipython/profile_default/security/
